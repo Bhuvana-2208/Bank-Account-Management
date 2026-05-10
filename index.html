@@ -488,7 +488,7 @@
         if (account.type === 'Savings' && account.balance - amount < MIN_SAVINGS_BALANCE) {
           return notify(el.txMsg, `Savings accounts must keep at least ${currency(MIN_SAVINGS_BALANCE)}.`);
         }
-        if (account.type === 'Current' && account.balance - amount < -account.overdraftLimit) {
+        if (account.type === 'Current' && account.balance < amount - account.overdraftLimit) {
           return notify(el.txMsg, `Current account overdraft limit reached (${currency(account.overdraftLimit)}).`);
         }
         if (account.balance - amount < 0 && account.type !== 'Current') {
