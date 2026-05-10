@@ -486,14 +486,14 @@
       } else {
         const projectedBalance = account.balance - amount;
         if (account.type === 'Fixed Deposit') return notify(el.txMsg, 'Withdrawals are locked for Fixed Deposit accounts.');
+        if (account.type === 'Savings' && projectedBalance < 0) {
+          return notify(el.txMsg, 'Insufficient balance for withdrawal.');
+        }
         if (account.type === 'Savings' && projectedBalance < MIN_SAVINGS_BALANCE_INR) {
           return notify(el.txMsg, `Savings accounts must keep at least ${currency(MIN_SAVINGS_BALANCE_INR)}.`);
         }
         if (account.type === 'Current' && projectedBalance < -account.overdraftLimit) {
           return notify(el.txMsg, `Current account overdraft limit reached (${currency(account.overdraftLimit)}).`);
-        }
-        if (projectedBalance < 0 && account.type !== 'Savings' && account.type !== 'Current') {
-          return notify(el.txMsg, 'Insufficient balance for withdrawal.');
         }
 
         account.balance -= amount;
