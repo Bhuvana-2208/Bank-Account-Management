@@ -335,7 +335,7 @@
   </div>
 
   <script>
-    const MIN_SAVINGS_BALANCE = 500;
+    const MIN_SAVINGS_BALANCE_INR = 500;
     const SAVINGS_RATE = 0.04;
 
     const accounts = [
@@ -484,14 +484,15 @@
         addTransaction(account.id, 'deposit', amount, `Deposit to ${account.number}`);
         notify(el.txMsg, 'Deposit successful.', true);
       } else {
+        const projectedBalance = account.balance - amount;
         if (account.type === 'Fixed Deposit') return notify(el.txMsg, 'Withdrawals are locked for Fixed Deposit accounts.');
-        if (account.type === 'Savings' && account.balance - amount < MIN_SAVINGS_BALANCE) {
-          return notify(el.txMsg, `Savings accounts must keep at least ${currency(MIN_SAVINGS_BALANCE)}.`);
+        if (account.type === 'Savings' && projectedBalance < MIN_SAVINGS_BALANCE_INR) {
+          return notify(el.txMsg, `Savings accounts must keep at least ${currency(MIN_SAVINGS_BALANCE_INR)}.`);
         }
-        if (account.type === 'Current' && account.balance < amount - account.overdraftLimit) {
+        if (account.type === 'Current' && projectedBalance < -account.overdraftLimit) {
           return notify(el.txMsg, `Current account overdraft limit reached (${currency(account.overdraftLimit)}).`);
         }
-        if (account.balance - amount < 0 && account.type !== 'Current') {
+        if (projectedBalance < 0 && account.type !== 'Savings' && account.type !== 'Current') {
           return notify(el.txMsg, 'Insufficient balance for withdrawal.');
         }
 
