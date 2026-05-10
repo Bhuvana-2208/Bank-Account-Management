@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Vault Bank</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-0: #070814;
+      --bg-1: #0d1430;
+      --bg-2: #16183a;
+      --glass: rgba(255, 255, 255, 0.08);
+      --glass-strong: rgba(255, 255, 255, 0.15);
+      --line: rgba(138, 156, 255, 0.3);
+      --neon-cyan: #42f5ff;
+      --neon-violet: #9b6dff;
+      --neon-pink: #ff54d2;
+      --mint: #79ffc8;
+      --danger: #ff6b8b;
+      --warning: #ffd166;
+      --ok: #77ffa0;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      --radius: 22px;
+      --transition: 240ms cubic-bezier(.22,.61,.36,1);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      color: #eef2ff;
+      background: radial-gradient(circle at 12% 18%, #2f2a77 0%, transparent 34%),
+                  radial-gradient(circle at 80% -8%, #611c89 0%, transparent 35%),
+                  linear-gradient(140deg, var(--bg-0), var(--bg-1), var(--bg-2));
+      overflow-x: hidden;
+    }
+
+    .blob {
+      position: fixed;
+      z-index: 0;
+      filter: blur(16px);
+      opacity: 0.4;
+      border-radius: 999px;
+      animation: drift 13s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .blob.one { width: 320px; height: 320px; left: -80px; top: 10%; background: #2a90ff; }
+    .blob.two { width: 260px; height: 260px; right: 4%; top: 64%; background: #ca4dff; animation-delay: -4s; }
+    .blob.three { width: 190px; height: 190px; right: 28%; top: 8%; background: #37ffd1; animation-delay: -8s; }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      gap: 20px;
+      padding: 18px;
+    }
+
+    .panel {
+      backdrop-filter: blur(14px);
+      background: linear-gradient(160deg, rgba(255,255,255,0.11), rgba(255,255,255,0.04));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      padding: 24px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      position: sticky;
+      top: 18px;
+      height: calc(100vh - 36px);
+    }
+
+    .logo {
+      font-weight: 700;
+      letter-spacing: .08em;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      text-shadow: 0 0 16px rgba(155,109,255,.7);
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    .nav-btn {
+      width: 100%;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,.04);
+      color: #dbe4ff;
+      border-radius: 14px;
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .nav-btn:hover,
+    .nav-btn.active {
+      border-color: rgba(121, 255, 200, .5);
+      background: linear-gradient(130deg, rgba(66,245,255,.18), rgba(155,109,255,.2));
+      transform: translateX(3px);
+      box-shadow: 0 0 26px rgba(66,245,255,.22);
+    }
+
+    .content { display: flex; flex-direction: column; gap: 16px; }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1.3fr .9fr;
+      gap: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: -80% 45% auto -30%;
+      height: 300px;
+      background: radial-gradient(circle at center, rgba(121,255,200,.25), transparent 70%);
+      transform: rotate(18deg);
+      pointer-events: none;
+    }
+
+    .hero h1 { margin: 0; font-size: clamp(1.5rem, 2.5vw, 2.5rem); }
+    .hero p { margin-top: 10px; color: #c4d0ff; max-width: 55ch; }
+
+    .balance-card {
+      border-radius: 16px;
+      border: 1px solid rgba(121,255,200,.35);
+      background: linear-gradient(155deg, rgba(121,255,200,.13), rgba(66,245,255,.08));
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: inset 0 0 24px rgba(66,245,255,.15);
+    }
+    .balance-value {
+      font-size: clamp(1.3rem, 3vw, 2.3rem);
+      font-weight: 700;
+      color: var(--mint);
+      text-shadow: 0 0 24px rgba(121,255,200,.5);
+    }
+
+    .tab {
+      display: none;
+      gap: 16px;
+      animation: fadeUp .35s ease;
+    }
+    .tab.active { display: grid; }
+
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .card {
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,.12);
+      transition: var(--transition);
+      animation: reveal .45s ease both;
+    }
+    .tab .card:nth-child(2) { animation-delay: .08s; }
+    .tab .card:nth-child(3) { animation-delay: .14s; }
+    .card:hover { transform: translateY(-2px); border-color: rgba(66,245,255,.45); }
+
+    .kpi .label { color: #bbcbff; font-size: .9rem; }
+    .kpi .value { margin-top: 8px; font-size: 1.5rem; font-weight: 700; }
+
+    .activity-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+    .activity-list li { color: #d7defd; }
+
+    .chart-bars { height: 140px; display: flex; align-items: end; gap: 10px; }
+    .bar {
+      flex: 1;
+      border-radius: 10px 10px 4px 4px;
+      background: linear-gradient(180deg, rgba(255,84,210,.8), rgba(66,245,255,.7));
+      min-height: 16px;
+      box-shadow: 0 0 20px rgba(155,109,255,.35);
+    }
+
+    form { display: grid; gap: 12px; }
+    label { font-size: .86rem; color: #c4d0ff; }
+    input, select, button {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(8, 13, 33, .7);
+      color: #eff4ff;
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 0 3px rgba(66,245,255,.15); }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      background: linear-gradient(120deg, rgba(66,245,255,.35), rgba(155,109,255,.45));
+      border-color: rgba(66,245,255,.55);
+      transition: var(--transition);
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 0 24px rgba(66,245,255,.35); }
+
+    .msg { font-size: .9rem; min-height: 1.2rem; }
+    .msg.error { color: var(--danger); }
+    .msg.success { color: var(--ok); }
+
+    .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: .93rem; }
+    .detail-grid div { padding: 10px; border-radius: 10px; background: rgba(255,255,255,.04); }
+
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.12); }
+    th { color: #bbcbff; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; }
+      .hero { grid-template-columns: 1fr; }
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0) translateX(0) scale(1); }
+      to { transform: translateY(-22px) translateX(12px) scale(1.08); }
+    }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="blob one"></div>
+  <div class="blob two"></div>
+  <div class="blob three"></div>
+
+  <div class="app">
+    <aside class="sidebar panel">
+      <div class="logo">Neon Vault Bank</div>
+      <div class="mono" style="font-size:.85rem;color:#9fb1f2;">Core Accounts Suite</div>
+      <nav style="display:grid;gap:10px;">
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="open-account">Open Account</button>
+        <button class="nav-btn" data-tab="transactions">Transactions</button>
+        <button class="nav-btn" data-tab="statement">Statement</button>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <section class="hero panel">
+        <div>
+          <h1>Future-ready banking with live account intelligence.</h1>
+          <p>Manage Savings, Current, and Fixed Deposit accounts in one immersive control hub inspired by object-oriented banking models.</p>
+        </div>
+        <div class="balance-card">
+          <div class="mono" style="color:#a9bbff;">Total Balance</div>
+          <div class="balance-value" id="heroTotalBalance">₹0.00</div>
+          <div class="mono" style="font-size:.8rem;color:#a9bbff;margin-top:8px;">Synced across all account classes</div>
+        </div>
+      </section>
+
+      <section id="dashboard" class="tab active grid-3">
+        <article class="card kpi"><div class="label">Total Accounts</div><div class="value" id="kpiAccounts">0</div></article>
+        <article class="card kpi"><div class="label">Total Deposits</div><div class="value" id="kpiDeposits">₹0.00</div></article>
+        <article class="card kpi"><div class="label">Savings Interest (Est.)</div><div class="value" id="kpiInterest">₹0.00</div></article>
+        <article class="card" style="grid-column: span 2;">
+          <h3 style="margin-top:0;">Balance Pulse</h3>
+          <div class="chart-bars" id="chartBars"></div>
+        </article>
+        <article class="card">
+          <h3 style="margin-top:0;">Recent Activity</h3>
+          <ul class="activity-list" id="recentActivity"></ul>
+        </article>
+      </section>
+
+      <section id="open-account" class="tab grid-2">
+        <article class="card" style="grid-column: span 2;">
+          <h3 style="margin-top:0;">Open New Account</h3>
+          <form id="createAccountForm">
+            <div class="grid-2" style="display:grid;gap:12px;">
+              <div><label>Account Type</label><select id="newType"><option>Savings</option><option>Current</option><option>Fixed Deposit</option></select></div>
+              <div><label>Holder Name</label><input id="newHolder" placeholder="e.g., Asha Menon" required /></div>
+              <div><label>Account Number</label><input id="newNumber" placeholder="e.g., 1200456701" required /></div>
+              <div><label>Opening Balance</label><input id="newBalance" type="number" min="0" step="0.01" required /></div>
+              <div id="overdraftWrap" class="hidden"><label>Overdraft Limit (Current only)</label><input id="newOverdraft" type="number" min="0" step="0.01" value="0" /></div>
+            </div>
+            <button type="submit">Create Account</button>
+            <div id="createMsg" class="msg"></div>
+          </form>
+        </article>
+      </section>
+
+      <section id="transactions" class="tab grid-2">
+        <article class="card" style="grid-column: span 2;">
+          <h3 style="margin-top:0;">Transactions</h3>
+          <form id="transactionForm">
+            <div class="grid-2" style="display:grid;gap:12px;">
+              <div><label>Choose Account</label><select id="txAccount"></select></div>
+              <div><label>Type</label><select id="txType"><option value="deposit">Deposit</option><option value="withdraw">Withdraw</option></select></div>
+              <div><label>Amount</label><input id="txAmount" type="number" min="0.01" step="0.01" required /></div>
+            </div>
+            <button type="submit">Apply Transaction</button>
+            <div id="txMsg" class="msg"></div>
+          </form>
+        </article>
+      </section>
+
+      <section id="statement" class="tab grid-2">
+        <article class="card" style="grid-column: span 2;">
+          <h3 style="margin-top:0;">Statement</h3>
+          <div style="margin-bottom:12px;"><label>Account</label><select id="statementAccount"></select></div>
+          <div class="detail-grid" id="accountDetails"></div>
+          <div style="margin-top:16px;overflow:auto;">
+            <table>
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Description</th></tr></thead>
+              <tbody id="statementTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const MIN_SAVINGS_BALANCE = 500;
+    const SAVINGS_RATE = 0.04;
+
+    const accounts = [
+      { id: crypto.randomUUID(), type: 'Savings', holder: 'Anika Rao', number: '10110001', balance: 12500, overdraftLimit: 0, locked: false },
+      { id: crypto.randomUUID(), type: 'Current', holder: 'Vikram Das', number: '10110002', balance: 4800, overdraftLimit: 3000, locked: false },
+      { id: crypto.randomUUID(), type: 'Fixed Deposit', holder: 'Meera Iyer', number: '10110003', balance: 35000, overdraftLimit: 0, locked: true }
+    ];
+
+    const transactions = [
+      { accountId: null, type: 'system', amount: 0, description: 'Banking session initialized', date: new Date().toISOString() }
+    ];
+
+    const el = {
+      navButtons: document.querySelectorAll('.nav-btn'),
+      tabs: document.querySelectorAll('.tab'),
+      heroTotalBalance: document.getElementById('heroTotalBalance'),
+      kpiAccounts: document.getElementById('kpiAccounts'),
+      kpiDeposits: document.getElementById('kpiDeposits'),
+      kpiInterest: document.getElementById('kpiInterest'),
+      chartBars: document.getElementById('chartBars'),
+      recentActivity: document.getElementById('recentActivity'),
+      newType: document.getElementById('newType'),
+      newHolder: document.getElementById('newHolder'),
+      newNumber: document.getElementById('newNumber'),
+      newBalance: document.getElementById('newBalance'),
+      newOverdraft: document.getElementById('newOverdraft'),
+      overdraftWrap: document.getElementById('overdraftWrap'),
+      createAccountForm: document.getElementById('createAccountForm'),
+      createMsg: document.getElementById('createMsg'),
+      txAccount: document.getElementById('txAccount'),
+      txType: document.getElementById('txType'),
+      txAmount: document.getElementById('txAmount'),
+      transactionForm: document.getElementById('transactionForm'),
+      txMsg: document.getElementById('txMsg'),
+      statementAccount: document.getElementById('statementAccount'),
+      accountDetails: document.getElementById('accountDetails'),
+      statementTableBody: document.getElementById('statementTableBody')
+    };
+
+    const currency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n);
+
+    function switchTab(tabId) {
+      el.navButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabId));
+      el.tabs.forEach((tab) => tab.classList.toggle('active', tab.id === tabId));
+    }
+
+    function notify(target, message, ok = false) {
+      target.textContent = message;
+      target.className = `msg ${ok ? 'success' : 'error'}`;
+    }
+
+    function syncSelectors() {
+      const options = accounts.map((a) => `<option value="${a.id}">${a.number} · ${a.holder} (${a.type})</option>`).join('');
+      el.txAccount.innerHTML = options;
+      el.statementAccount.innerHTML = options;
+    }
+
+    function renderDashboard() {
+      const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+      const totalDeposits = transactions.filter((t) => t.type === 'deposit' || t.type === 'opening').reduce((s, t) => s + t.amount, 0);
+      const savingsInterest = accounts.filter((a) => a.type === 'Savings').reduce((s, a) => s + a.balance * SAVINGS_RATE, 0);
+
+      el.heroTotalBalance.textContent = currency(totalBalance);
+      el.kpiAccounts.textContent = accounts.length;
+      el.kpiDeposits.textContent = currency(totalDeposits);
+      el.kpiInterest.textContent = currency(savingsInterest);
+
+      const maxBal = Math.max(...accounts.map((a) => a.balance), 1);
+      el.chartBars.innerHTML = accounts
+        .map((a) => `<div class="bar" style="height:${Math.max((a.balance / maxBal) * 100, 14)}%" title="${a.type}: ${currency(a.balance)}"></div>`)
+        .join('');
+
+      const recent = [...transactions].slice(-6).reverse();
+      el.recentActivity.innerHTML = recent
+        .map((t) => `<li>${new Date(t.date).toLocaleString()} · ${t.description} ${t.amount ? `(${currency(t.amount)})` : ''}</li>`)
+        .join('') || '<li>No activity yet.</li>';
+    }
+
+    function renderStatement() {
+      const account = accounts.find((a) => a.id === el.statementAccount.value) || accounts[0];
+      if (!account) return;
+
+      el.accountDetails.innerHTML = `
+        <div><strong>Holder:</strong> ${account.holder}</div>
+        <div><strong>Account #:</strong> ${account.number}</div>
+        <div><strong>Type:</strong> ${account.type}</div>
+        <div><strong>Balance:</strong> ${currency(account.balance)}</div>
+      `;
+
+      const rows = transactions
+        .filter((t) => t.accountId === account.id)
+        .slice()
+        .reverse()
+        .map((t) => `<tr><td>${new Date(t.date).toLocaleString()}</td><td>${t.type}</td><td>${currency(t.amount)}</td><td>${t.description}</td></tr>`)
+        .join('');
+
+      el.statementTableBody.innerHTML = rows || '<tr><td colspan="4">No transactions yet for this account.</td></tr>';
+    }
+
+    function addTransaction(accountId, type, amount, description) {
+      transactions.push({ accountId, type, amount, description, date: new Date().toISOString() });
+    }
+
+    function refreshAll() {
+      syncSelectors();
+      renderDashboard();
+      renderStatement();
+    }
+
+    el.navButtons.forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+    el.newType.addEventListener('change', () => {
+      el.overdraftWrap.classList.toggle('hidden', el.newType.value !== 'Current');
+    });
+
+    el.createAccountForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const type = el.newType.value;
+      const holder = el.newHolder.value.trim();
+      const number = el.newNumber.value.trim();
+      const openingBalance = Number(el.newBalance.value);
+      const overdraft = type === 'Current' ? Number(el.newOverdraft.value || 0) : 0;
+
+      if (!holder || !number || Number.isNaN(openingBalance) || openingBalance < 0) return notify(el.createMsg, 'Please enter valid account details.');
+      if (accounts.some((a) => a.number === number)) return notify(el.createMsg, 'Account number already exists.');
+
+      const account = { id: crypto.randomUUID(), type, holder, number, balance: openingBalance, overdraftLimit: overdraft, locked: type === 'Fixed Deposit' };
+      accounts.push(account);
+      addTransaction(account.id, 'opening', openingBalance, `Opened ${type} account`);
+
+      el.createAccountForm.reset();
+      el.overdraftWrap.classList.add('hidden');
+      notify(el.createMsg, 'Account created successfully.', true);
+      refreshAll();
+    });
+
+    el.transactionForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const account = accounts.find((a) => a.id === el.txAccount.value);
+      const txType = el.txType.value;
+      const amount = Number(el.txAmount.value);
+      if (!account || Number.isNaN(amount) || amount <= 0) return notify(el.txMsg, 'Enter a valid transaction amount.');
+
+      if (txType === 'deposit') {
+        account.balance += amount;
+        addTransaction(account.id, 'deposit', amount, `Deposit to ${account.number}`);
+        notify(el.txMsg, 'Deposit successful.', true);
+      } else {
+        if (account.type === 'Fixed Deposit') return notify(el.txMsg, 'Withdrawals are locked for Fixed Deposit accounts.');
+        if (account.type === 'Savings' && account.balance - amount < MIN_SAVINGS_BALANCE) {
+          return notify(el.txMsg, `Savings accounts must keep at least ${currency(MIN_SAVINGS_BALANCE)}.`);
+        }
+        if (account.type === 'Current' && account.balance < amount - account.overdraftLimit) {
+          return notify(el.txMsg, `Current account overdraft limit reached (${currency(account.overdraftLimit)}).`);
+        }
+        if (account.balance - amount < 0 && account.type !== 'Current') {
+          return notify(el.txMsg, 'Insufficient balance for withdrawal.');
+        }
+
+        account.balance -= amount;
+        addTransaction(account.id, 'withdraw', amount, `Withdrawal from ${account.number}`);
+        notify(el.txMsg, 'Withdrawal successful.', true);
+      }
+
+      el.transactionForm.reset();
+      refreshAll();
+    });
+
+    el.statementAccount.addEventListener('change', renderStatement);
+
+    // Seed opening transactions so KPIs and statements start with data.
+    accounts.forEach((a) => addTransaction(a.id, 'opening', a.balance, `Initial balance for ${a.number}`));
+    refreshAll();
+  </script>
+</body>
+</html>
